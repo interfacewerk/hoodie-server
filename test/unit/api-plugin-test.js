@@ -24,7 +24,7 @@ describe('api plugin', function () {
     before(function () {
       plugin.internals.couchCfg = {
         url: 'http://couch.somewhere:1234'
-      }
+      };
     });
 
     it('should prepend the couchCfg url', function () {
@@ -123,19 +123,19 @@ describe('api plugin', function () {
     });
 
     it('should call reply and hold', function (done) {
-      var stream = Wreck.toReadableStream(JSON.stringify({ the: 'body' }));
+      var stream = Wreck.toReadableStream('{"the":"body"}');
       stream.headers = {};
       stream.statusCode = 200;
 
       plugin.internals.addCorsAndBearerToken(null, stream, { headers: {} }, function (data) {
-        var fixture = JSON.stringify({"the": "body"}) + '\n';
-        expect(data).to.eql(fixture);
+        var fixture = '{"the":"body"}';
+        expect(data.toString()).to.eql(fixture);
         return {
           code: function(statusCode) {
             expect(statusCode).to.eql(200);
             return {
               hold: function () {
-                function Resp() {};
+                function Resp() {}
                 Resp.prototype.send = function() {
                   expect(this.headers).to.be.an('object');
                   done();
@@ -149,21 +149,21 @@ describe('api plugin', function () {
     });
 
     it('should set status 200 for OPTIONS requests', function (done) {
-      var stream = Wreck.toReadableStream(JSON.stringify({ the: 'body' }));
+      var stream = Wreck.toReadableStream('{"the":"body"}');
 
       stream.headers = {
         some: 'header',
       };
       stream.statusCode = 405;
       plugin.internals.addCorsAndBearerToken(null, stream, { method: 'options', headers: {} }, function (data) {
-        var fixture = JSON.stringify({"the": "body"}) + '\n';
-        expect(data).to.eql(fixture);
+        var fixture = '{"the":"body"}';
+        expect(data.toString()).to.eql(fixture);
         return {
           code: function(statusCode) {
             expect(statusCode).to.eql(200);
             return {
               hold: function () {
-                function Resp() {};
+                function Resp() {}
                 Resp.prototype.send = function() {
                   expect(this.headers).to.be.an('object');
                   done();
@@ -187,17 +187,17 @@ describe('api plugin', function () {
         method: 'get',
         headers: { 'origin': 'some-origin', 'custom-header': 'add me to -Allowed-Headers' }
       }, function (data) {
-        var fixture = JSON.stringify({"the": "body"}) + '\n';
-        expect(data).to.eql(fixture);
+        var fixture = '{"the":"body"}';
+        expect(data.toString()).to.eql(fixture);
         return {
           code: function(statusCode) {
             expect(statusCode).to.eql(200);
             return {
               hold: function () {
-                function Resp() {};
+                function Resp() {}
                 Resp.prototype.send = function() {
                   expect(this.headers).to.eql({
-                    some: 'header',
+                    some: 'header', 'content-length': 14,
                     'access-control-allow-origin': 'some-origin',
                     'access-control-allow-headers': 'authorization, content-length, content-type, if-match, if-none-match, origin, x-requested-with, custom-header',
                     'access-control-expose-headers': 'content-type, content-length, etag',
@@ -215,22 +215,28 @@ describe('api plugin', function () {
     });
 
     it('should strip any set-cookie headers and add them into the body', function (done) {
-      var stream = Wreck.toReadableStream(JSON.stringify({ the: 'body' }));
+      var payload = {
+        the: 'body',
+        bearerToken: 'some-token'
+      };
+      var fixture = '{"the":"body","bearerToken":"some-token"}';
+      var stream = Wreck.toReadableStream(JSON.stringify(payload));
 
+      stream.statusCode = 200;
       stream.headers = {
         some: 'header',
         'set-cookie': ['AuthSession=some-token; Version=bla bla bla']
       };
-      stream.statusCode = 200;
+
       plugin.internals.addCorsAndBearerToken(null, stream, { headers: {} }, function (data) {
-        var fixture = JSON.stringify({"the": "body", "bearerToken": "some-token"}) + '\n';
-        expect(data).to.eql(fixture);
+        expect(data.toString()).to.eql(fixture);
+
         return {
           code: function(statusCode) {
             expect(statusCode).to.eql(200);
             return {
               hold: function () {
-                function Resp() {};
+                function Resp() {}
                 Resp.prototype.send = function() {
                   expect(this.headers['set-cookie']).to.be.an('undefined');
                 };
